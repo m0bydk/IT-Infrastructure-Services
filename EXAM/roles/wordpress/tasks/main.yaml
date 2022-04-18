@@ -1,0 +1,55 @@
+- name: install python pip
+  apt:
+    state: latest
+    name: ['docker.io','python3-pip']
+
+- name: Install docker pip
+  pip:
+    name:
+      - docker
+      - requests>=2.20.1
+- name: Wordpress Docker Container
+  docker_container:
+      name: www-{{ item }}
+      image: "wordpress:latest"
+      detach: True
+      published_ports:
+      - 8{{ item }}80:80
+      env: 
+        WORDPRESS_DB_USER={{ wp_mysql_user }},
+        WORDPRESS_DB_HOST=db.zekena.ttu:3306,
+        WORDPRESS_DB_PASSWORD={{ wp_mysql_password }},
+        WORDPRESS_DB_NAME={{ wp_mysql_db }}
+      restart_policy: always
+      dns_servers:
+        - "{{ master_ip }}"
+        - "{{ slave_ip}}"
+  loop: "{{ wordpress_instances[:wordpress_active_instances] }}" 
+- name: move the env list
+  template:
+    src: templates/env.list.j2
+    dest: /home/infra01/env.list
+- name: Create a service for wordpress containers
+  template: 
+    src: templates/www-{{ item }}.service.j2
+    dest: /etc/systemd/system/www-{ item }.service
+  notify: 
+    - restart systemd
+    - restart www-{{ item }}
+  loop: "{{ wordpress_instances[:wordpress_active_instances] }}" 
+
+- name: Create a service for wordpress containers
+  template: 
+    src: templates/www-{{ item }}.service.j2
+    dest: /etc/systemd/system/www-{{ item }}.service
+  notify: 
+    - restart systemd
+    - restart www-{{ item }}
+  loop: "{{ wordpress_instances[:wordpress_active_instances] }}" 
+
+- name: start the service
+  service:
+    name: www-{{ item }}
+    state: restarted
+  loop: "{{ wordpress_instances[:wordpress_active_instances] }}" 
+

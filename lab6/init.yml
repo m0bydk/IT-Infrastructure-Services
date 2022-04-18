@@ -1,0 +1,29 @@
+---
+- name: initiale database setup
+  hosts: infra02
+  become: yes
+  tasks:
+    - name: place ssh keys
+      authorized_key:
+        user: backup
+        key: https://github.com/zekena.keys
+
+    - name: disable sudo pass
+      copy:
+        dest: /etc/sudoers.d/backup
+        content: "backup ALL = NOPASSWD: ALL"
+
+- name: installing wordpress
+  hosts: wordpress
+  remote_user: zekena
+  become: yes
+  tasks:
+    - name: place ssh keys
+      authorized_key:
+        user: backup
+        key: https://github.com/zekena.keys
+
+    - name: disable sudo pass
+      copy:
+        dest: /etc/sudoers.d/backup
+        content: "backuo ALL = NOPASSWD: ALL"
